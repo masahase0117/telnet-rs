@@ -379,20 +379,17 @@ impl Telnet {
     /// - [`TelnetError::SubnegotiationErr`] if subnegotiation fails
     #[allow(clippy::shadow_unrelated)]
     pub fn subnegotiate(&mut self, opt: TelnetOption, data: &[u8]) -> Result<(), TelnetError> {
-        let buf = &[BYTE_IAC, BYTE_SB, opt.as_byte()];
+        let mut buf = Vec::new();
+        buf.push(BYTE_IAC);
+        buf.push(BYTE_SB);
+        buf.push(opt.as_byte());
+        buf.extend_from_slice(data);
+        buf.push(BYTE_IAC);
+        buf.push(BYTE_SE);
+
         self.stream
-            .write_all(buf)
+            .write_all(&buf)
             .or(Err(SubnegotiationErr(SubnegotiationType::Start)))?;
-
-        self.stream
-            .write_all(data)
-            .or(Err(SubnegotiationErr(SubnegotiationType::Data)))?;
-
-        let buf = &[BYTE_IAC, BYTE_SE];
-
-        self.stream
-            .write_all(buf)
-            .or(Err(SubnegotiationErr(SubnegotiationType::End)))?;
 
         Ok(())
     }
